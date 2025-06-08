@@ -1,0 +1,6 @@
+@MockCRM_HostAddress = http://localhost:5237
+
+GET {{MockCRM_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
