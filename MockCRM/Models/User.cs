@@ -10,6 +10,8 @@ public enum Role
 }
 public class User
 {
+    public List<Customer> AssignedCustomers { get; set; }
+    public List<ContactHistory> ContactHistoriesCreatedbyUser { get; set; }
     public int  Id { get; set; }
     public string Username { get; set; }
     public string Email { get; set; }

@@ -16,12 +16,12 @@ if (string.IsNullOrEmpty(connectionString))
 {
     Console.WriteLine("ERROR: Connection string is null or empty!");
 }
+
 builder.Services.AddDbContext<CrmDbContext>(options => 
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 // Add services to the container.
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddControllers();
-builder.Services.AddScoped<TokenService>();
+builder.Services.AddScoped<TokenService>(); 
 // Add CORS policy for development
 builder.Services.AddCors(options =>
 {
@@ -56,6 +56,8 @@ builder.Services.AddAuthentication(options =>
             IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(key))
         };
     });
+// the following fallback policy is not really needed. Can just write AddAuthorization();
+// what fallback policy does is that will by default make all endpoints require authentication
 builder.Services.AddAuthorization(options =>
 {
     options.FallbackPolicy = new AuthorizationPolicyBuilder()
@@ -63,6 +65,7 @@ builder.Services.AddAuthorization(options =>
         .Build();
 });
 
+// this is for swagger
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
     {
@@ -96,8 +99,6 @@ builder.Services.AddSwaggerGen(c =>
         });
     }
     );
-//builder.Services.AddDbContext<CrmDbContext>(options =>
-//    options.UseSqlServer("YourConnectionStringHere"));
 
 var app = builder.Build();
 

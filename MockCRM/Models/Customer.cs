@@ -3,8 +3,34 @@ using System.Text.Json.Serialization;
 
 namespace MockCRM.Models;
 
+public enum CustomerStatus
+{
+    Active,
+    Inactive,
+    Prospect
+}
+
+public enum CustomerPriority
+{
+    High,
+    Medium,
+    Low
+}
+
+public enum ContactMethod
+{
+    Phone,
+    Email,
+    InPerson,
+    VideoCall
+}
 public class Customer
 {
+    public CustomerStatus Status { get; set; } = CustomerStatus.Active;
+    public CustomerPriority Priority { get; set; } = CustomerPriority.Medium;
+    public int Revenue { get; set; } //assuming revenue is whole numbers always
+    public int AssignedSalesRepId { get; set; }
+    public User AssignedSalesRep { get; set; }
     
     public int ID { get; set; }
     [Required(ErrorMessage = "Name is Req")]
@@ -30,4 +56,9 @@ public class ContactHistory
     public string Notes { get; set; }
     public DateTime ContactDate { get; set; }
     public string Outcome { get; set; }
+    public int Duration { get; set; } //in minutes for calls
+    public DateTime? FollowUpDate { get; set; }//for scheduling next time of contact for the customers-salesRep
+    public int CreatedByUserId { get; set; } //to track who created this contact history becomes the FK to below
+    public User CreatedByUser { get; set; } //to track who created this contact history
+    public ContactMethod ContactMethod { get; set; }
 }

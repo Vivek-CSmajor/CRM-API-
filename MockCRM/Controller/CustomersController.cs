@@ -96,6 +96,59 @@ namespace MockCRM.Controller
             await _context.SaveChangesAsync();
             return NoContent();
         }
-        
+
+        [HttpGet("search")]
+        //since this can give All customers is no filter provided.ITs a viable 
+        //replaceemnt for GetAllCustomers. Still keep both for clarity.
+        public async Task<IActionResult> SearchCustomersByName_Company([FromQuery] string? name,
+            [FromQuery] string? company)
+        {
+            var query = _context.Customers.AsQueryable();
+            if (!string.IsNullOrWhiteSpace(name))
+                query = query.Where(c => c.Name.Contains(name));
+            if (!string.IsNullOrWhiteSpace(company))
+                query = query.Where(c => c.Company.Contains(company));
+            var customers = await query.ToListAsync();
+            return Ok(customers);
+        }
+
+        [HttpGet("by-status/{status}")]
+        public async Task<IActionResult> GetCustomersbyStatus([FromRoute] string status)
+        {
+            if (!Enum.TryParse<CustomerStatus>(status, true, out var parsedStatus))
+                return BadRequest("invalid status");
+            var customers = await _context.Customers
+                .Where(c => c.Status == parsedStatus)
+                .ToListAsync();
+            return Ok(customers);
+        }
+
+        [HttpGet("by-priority/{priority}")]
+        public async Task<IActionResult> GetCustomersByPriority([FromRoute] string priority)
+        {
+            //this if condition works like : if parsing fails returns BadRequest. 
+            //if parsing succeeds, it will return a new var parsedPriority that can be used querying later.
+            if (!Enum.TryParse<CustomerPriority>(priority, true, out var parsedPriority))
+                return BadRequest("invalid priority");
+            var customers = await _context.Customers
+                .Where(c => c.Priority == parsedPriority)
+                .ToListAsync();
+            return Ok(customers);
+        }
+
+        [HttpGet("assigned-to/{userId}")]
+        public async Task<IActionResult> GetCUstomersAssignedToUser([FromRoute] int userId)
+        {
+            if (!await _context.Users.AnyAsync(c => c.Id == userId))
+                return BadRequest("User does not exist. Invalid Id given by u");
+            var customers = await _context.Customers
+                .Where(c => c.AssignedSalesRepId == userId)
+                .ToListAsync();
+            //below statement is written this way beacuse
+            //ToListAsync() returns empty list if no customers found. IT doesnt return null.
+            if (customers.Count == 0)
+                return Ok(new List<Customer>());
+            return Ok(customers);
+        }
     }
 }

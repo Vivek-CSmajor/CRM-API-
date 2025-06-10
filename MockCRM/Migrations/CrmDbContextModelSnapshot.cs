@@ -33,12 +33,24 @@ namespace MockCRM.Migrations
                     b.Property<DateTime>("ContactDate")
                         .HasColumnType("datetime2");
 
+                    b.Property<int>("ContactMethod")
+                        .HasColumnType("int");
+
                     b.Property<string>("ContactType")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<int>("CreatedByUserId")
+                        .HasColumnType("int");
+
                     b.Property<int>("CustomerID")
                         .HasColumnType("int");
+
+                    b.Property<int>("Duration")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("FollowUpDate")
+                        .HasColumnType("datetime2");
 
                     b.Property<string>("Notes")
                         .IsRequired()
@@ -50,9 +62,73 @@ namespace MockCRM.Migrations
 
                     b.HasKey("ContactHistoryID");
 
+                    b.HasIndex("CreatedByUserId");
+
                     b.HasIndex("CustomerID");
 
                     b.ToTable("ContactHistories");
+
+                    b.HasData(
+                        new
+                        {
+                            ContactHistoryID = 10,
+                            ContactDate = new DateTime(2024, 6, 5, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            ContactMethod = 0,
+                            ContactType = "Email",
+                            CreatedByUserId = 2,
+                            CustomerID = 1,
+                            Duration = 0,
+                            Notes = "Initial contact",
+                            Outcome = "Interested"
+                        },
+                        new
+                        {
+                            ContactHistoryID = 20,
+                            ContactDate = new DateTime(2024, 6, 6, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            ContactMethod = 0,
+                            ContactType = "Phone",
+                            CreatedByUserId = 3,
+                            CustomerID = 2,
+                            Duration = 0,
+                            Notes = "Follow-up call",
+                            Outcome = "No answer"
+                        },
+                        new
+                        {
+                            ContactHistoryID = 30,
+                            ContactDate = new DateTime(2024, 6, 7, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            ContactMethod = 0,
+                            ContactType = "Meeting",
+                            CreatedByUserId = 5,
+                            CustomerID = 3,
+                            Duration = 0,
+                            Notes = "Demo presented",
+                            Outcome = "Considering"
+                        },
+                        new
+                        {
+                            ContactHistoryID = 40,
+                            ContactDate = new DateTime(2024, 6, 8, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            ContactMethod = 0,
+                            ContactType = "Email",
+                            CreatedByUserId = 3,
+                            CustomerID = 4,
+                            Duration = 0,
+                            Notes = "Sent proposal",
+                            Outcome = "Waiting"
+                        },
+                        new
+                        {
+                            ContactHistoryID = 50,
+                            ContactDate = new DateTime(2024, 6, 9, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            ContactMethod = 0,
+                            ContactType = "Phone",
+                            CreatedByUserId = 2,
+                            CustomerID = 5,
+                            Duration = 0,
+                            Notes = "Negotiation",
+                            Outcome = "Deal closed"
+                        });
                 });
 
             modelBuilder.Entity("MockCRM.Models.Customer", b =>
@@ -62,6 +138,9 @@ namespace MockCRM.Migrations
                         .HasColumnType("int");
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ID"));
+
+                    b.Property<int>("AssignedSalesRepId")
+                        .HasColumnType("int");
 
                     b.Property<string>("Company")
                         .IsRequired()
@@ -85,9 +164,92 @@ namespace MockCRM.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<int>("Priority")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Revenue")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
                     b.HasKey("ID");
 
+                    b.HasIndex("AssignedSalesRepId");
+
                     b.ToTable("Customers");
+
+                    b.HasData(
+                        new
+                        {
+                            ID = 1,
+                            AssignedSalesRepId = 3,
+                            Company = "Acme",
+                            CreatedDate = new DateTime(2024, 6, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Email = "contact.acme@gmail.com",
+                            LastContactDate = new DateTime(2024, 6, 5, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Name = "Acme Corp",
+                            Phone = "1234567890",
+                            Priority = 0,
+                            Revenue = 0,
+                            Status = 0
+                        },
+                        new
+                        {
+                            ID = 2,
+                            AssignedSalesRepId = 5,
+                            Company = "Beta",
+                            CreatedDate = new DateTime(2024, 6, 2, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Email = "info.beta@gmail.com",
+                            LastContactDate = new DateTime(2024, 6, 6, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Name = "Beta LLC",
+                            Phone = "2345678901",
+                            Priority = 1,
+                            Revenue = 0,
+                            Status = 2
+                        },
+                        new
+                        {
+                            ID = 3,
+                            AssignedSalesRepId = 3,
+                            Company = "Gamma",
+                            CreatedDate = new DateTime(2024, 6, 3, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Email = "hello.gamma@gmail.com",
+                            LastContactDate = new DateTime(2024, 6, 7, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Name = "Gamma Inc",
+                            Phone = "3456789012",
+                            Priority = 2,
+                            Revenue = 0,
+                            Status = 1
+                        },
+                        new
+                        {
+                            ID = 4,
+                            AssignedSalesRepId = 5,
+                            Company = "Delta",
+                            CreatedDate = new DateTime(2024, 6, 4, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Email = "support.delta@gmail.com",
+                            LastContactDate = new DateTime(2024, 6, 8, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Name = "Delta Ltd",
+                            Phone = "4567890123",
+                            Priority = 1,
+                            Revenue = 0,
+                            Status = 0
+                        },
+                        new
+                        {
+                            ID = 5,
+                            AssignedSalesRepId = 2,
+                            Company = "Epsilon",
+                            CreatedDate = new DateTime(2024, 6, 5, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Email = "contact.epsilon@gmail.com",
+                            LastContactDate = new DateTime(2024, 6, 9, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Name = "Epsilon GmbH",
+                            Phone = "5678901234",
+                            Priority = 0,
+                            Revenue = 0,
+                            Status = 2
+                        });
                 });
 
             modelBuilder.Entity("MockCRM.Models.User", b =>
@@ -124,22 +286,95 @@ namespace MockCRM.Migrations
                         .IsUnique();
 
                     b.ToTable("Users");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1,
+                            CreatedDate = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Email = "alice@gmail.com",
+                            PasswordHash = "hash1",
+                            Role = 0,
+                            Username = "alice"
+                        },
+                        new
+                        {
+                            Id = 2,
+                            CreatedDate = new DateTime(2024, 2, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Email = "bob@gmail.com",
+                            PasswordHash = "hash2",
+                            Role = 1,
+                            Username = "bob"
+                        },
+                        new
+                        {
+                            Id = 3,
+                            CreatedDate = new DateTime(2024, 3, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Email = "carol@gmail.com",
+                            PasswordHash = "hash3",
+                            Role = 2,
+                            Username = "carol"
+                        },
+                        new
+                        {
+                            Id = 4,
+                            CreatedDate = new DateTime(2024, 4, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Email = "dave@gmail.com",
+                            PasswordHash = "hash4",
+                            Role = 3,
+                            Username = "dave"
+                        },
+                        new
+                        {
+                            Id = 5,
+                            CreatedDate = new DateTime(2024, 5, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Email = "eve@gmail.com",
+                            PasswordHash = "hash5",
+                            Role = 2,
+                            Username = "eve"
+                        });
                 });
 
             modelBuilder.Entity("MockCRM.Models.ContactHistory", b =>
                 {
+                    b.HasOne("MockCRM.Models.User", "CreatedByUser")
+                        .WithMany("ContactHistoriesCreatedbyUser")
+                        .HasForeignKey("CreatedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
                     b.HasOne("MockCRM.Models.Customer", "Customer")
                         .WithMany("ContactHistories")
                         .HasForeignKey("CustomerID")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.Navigation("CreatedByUser");
+
                     b.Navigation("Customer");
                 });
 
             modelBuilder.Entity("MockCRM.Models.Customer", b =>
                 {
+                    b.HasOne("MockCRM.Models.User", "AssignedSalesRep")
+                        .WithMany("AssignedCustomers")
+                        .HasForeignKey("AssignedSalesRepId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("AssignedSalesRep");
+                });
+
+            modelBuilder.Entity("MockCRM.Models.Customer", b =>
+                {
                     b.Navigation("ContactHistories");
+                });
+
+            modelBuilder.Entity("MockCRM.Models.User", b =>
+                {
+                    b.Navigation("AssignedCustomers");
+
+                    b.Navigation("ContactHistoriesCreatedbyUser");
                 });
 #pragma warning restore 612, 618
         }
