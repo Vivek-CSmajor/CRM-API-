@@ -150,5 +150,94 @@ namespace MockCRM.Controller
                 return Ok(new List<Customer>());
             return Ok(customers);
         }
+
+        [HttpPost("bulk-import")]
+        // This made me realise i need to create a Dto as the request i'll give here may not include all the properties. 
+        // Since when importing customers, i may have not done all the things like phone, company etc.
+        public async Task<IActionResult> BulkImportCustomers([FromBody] List<CustomerImportDto> customers)
+        {
+            // Initialize collections for processing results and tracking duplicate emails
+            var results = new List<object>();
+            var emailsInRequest = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+            // Process each customer in the import request
+            foreach (var dto in customers)
+            {
+                // First. we perform all basic validations and checks .
+                // Check if name and email are provided (both are required fields)
+                if (string.IsNullOrWhiteSpace(dto.Name) || string.IsNullOrWhiteSpace(dto.Email))
+                {
+                    results.Add(new { customer = dto, success = false, reason = "name & email are req" });
+                    continue;
+                }
+
+                // Below since emailsInRequest is a hashset it will not allow duplications 
+                // Therefore when we add already existing email it returns false so we can use the if condition like this
+                // Btw below we are checking if email is already in the REQUEST
+                if (!emailsInRequest.Add(dto.Email))
+                {
+                    results.Add(new { customer = dto, success = false, reason = "Email already exists" });
+                    continue;
+                }
+
+                // Now we check if email already exists in database
+                if (await _context.Customers.AnyAsync(c => c.Email == dto.Email))
+                {
+                    results.Add(new { customer = dto, success = false, reason = "Email already in database" });
+                    continue;
+                }
+
+                // Validate Status enum - ensure provided status is valid
+                if (!Enum.TryParse<CustomerStatus>(dto.Status, true, out var status))
+                {
+                    results.Add(new { customer = dto, success = false, reason = "Invalid status" });
+                    continue;
+                }
+
+                // Validate Priority enum - ensure provided priority is valid
+                if (!Enum.TryParse<CustomerPriority>(dto.Priority, true, out var priority))
+                {
+                    results.Add(new { customer = dto, success = false, reason = "Invalid priority" });
+                    continue;
+                }
+
+                // This is to check if AssignedSalesRepId is provided and if it exists in the database
+                // These things are for null coalescing - in case nothing is provided for certain things 
+                // like AssignedSalesRepId, or revenue etc, we can just set them to null or 0
+                if (dto.AssignedSalesRepId.HasValue)
+                {
+                    var userExists = await _context.Users.AnyAsync(u => u.Id == dto.AssignedSalesRepId.Value);
+                    if (!userExists)
+                    {
+                        results.Add(new { customer = dto, success = false, reason = "Assigned sales rep does not exist" });
+                        continue;
+                    }
+                }
+                // ALl validations Done. Now create Customer.
+                // Create new customer entity from validated DTO
+                var customer = new Customer
+                {
+                    Name = dto.Name,
+                    Email = dto.Email,
+                    Phone = dto.Phone,
+                    Company = dto.Company,
+                    Status = status,
+                    Priority = priority,
+                    AssignedSalesRepId = dto.AssignedSalesRepId,  // Set directly, allow null
+                    Revenue = dto.Revenue ?? 0,                   // Use dto.Revenue if provided, else 0
+                    CreatedDate = DateTime.UtcNow
+                };
+
+                // Add customer to context and mark as successful
+                _context.Customers.Add(customer);
+                results.Add(new { customer = dto, success = true });
+            }
+
+            // Save all valid customers to database in a single transaction
+            await _context.SaveChangesAsync();
+            
+            // Return results showing success/failure for each customer
+            return Ok(results);
+        }
     }
 }

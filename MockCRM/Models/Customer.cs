@@ -26,10 +26,10 @@ public enum ContactMethod
 }
 public class Customer
 {
-    public CustomerStatus Status { get; set; } = CustomerStatus.Active;
-    public CustomerPriority Priority { get; set; } = CustomerPriority.Medium;
-    public int Revenue { get; set; } //assuming revenue is whole numbers always
-    public int AssignedSalesRepId { get; set; }
+    public CustomerStatus? Status { get; set; } = CustomerStatus.Active;
+    public CustomerPriority? Priority { get; set; } = CustomerPriority.Medium;
+    public int? Revenue { get; set; } //assuming revenue is whole numbers always
+    public int? AssignedSalesRepId { get; set; }
     public User AssignedSalesRep { get; set; }
     
     public int ID { get; set; }
@@ -43,7 +43,7 @@ public class Customer
     public string Company { get; set; }
     public DateTime CreatedDate { get; set; }
     public DateTime? LastContactDate { get; set; }
-    public List<ContactHistory> ContactHistories { get; set; }
+    public List<ContactHistory>? ContactHistories { get; set; }
 }
 
 public class ContactHistory
@@ -58,7 +58,7 @@ public class ContactHistory
     public string Outcome { get; set; }
     public int Duration { get; set; } //in minutes for calls
     public DateTime? FollowUpDate { get; set; }//for scheduling next time of contact for the customers-salesRep
-    public int CreatedByUserId { get; set; } //to track who created this contact history becomes the FK to below
+    public int? CreatedByUserId { get; set; } //to track who created this contact history becomes the FK to below
     public User CreatedByUser { get; set; } //to track who created this contact history
     public ContactMethod ContactMethod { get; set; }
 }

@@ -1,9 +1,11 @@
 using System.Reflection;
 using System.Text;
+using System.Text.Json.Serialization;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.JsonWebTokens;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using MockCRM.Data;
@@ -20,7 +22,12 @@ if (string.IsNullOrEmpty(connectionString))
 builder.Services.AddDbContext<CrmDbContext>(options => 
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 // Add services to the container.
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+        {
+            options.JsonSerializerOptions.PropertyNameCaseInsensitive = true;
+            options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+        });
 builder.Services.AddScoped<TokenService>(); 
 // Add CORS policy for development
 builder.Services.AddCors(options =>
