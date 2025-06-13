@@ -73,11 +73,12 @@ namespace MockCRM.Migrations
                         {
                             ContactHistoryID = 10,
                             ContactDate = new DateTime(2024, 6, 5, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            ContactMethod = 0,
+                            ContactMethod = 1,
                             ContactType = "Email",
                             CreatedByUserId = 2,
                             CustomerID = 1,
-                            Duration = 0,
+                            Duration = 30,
+                            FollowUpDate = new DateTime(2025, 6, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Notes = "Initial contact",
                             Outcome = "Interested"
                         },
@@ -89,7 +90,8 @@ namespace MockCRM.Migrations
                             ContactType = "Phone",
                             CreatedByUserId = 3,
                             CustomerID = 2,
-                            Duration = 0,
+                            Duration = 15,
+                            FollowUpDate = new DateTime(2025, 6, 20, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Notes = "Follow-up call",
                             Outcome = "No answer"
                         },
@@ -97,11 +99,11 @@ namespace MockCRM.Migrations
                         {
                             ContactHistoryID = 30,
                             ContactDate = new DateTime(2024, 6, 7, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            ContactMethod = 0,
+                            ContactMethod = 2,
                             ContactType = "Meeting",
                             CreatedByUserId = 5,
                             CustomerID = 3,
-                            Duration = 0,
+                            Duration = 60,
                             Notes = "Demo presented",
                             Outcome = "Considering"
                         },
@@ -109,11 +111,12 @@ namespace MockCRM.Migrations
                         {
                             ContactHistoryID = 40,
                             ContactDate = new DateTime(2024, 6, 8, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            ContactMethod = 0,
-                            ContactType = "Email",
+                            ContactMethod = 3,
+                            ContactType = "VideoCall",
                             CreatedByUserId = 3,
                             CustomerID = 4,
-                            Duration = 0,
+                            Duration = 10,
+                            FollowUpDate = new DateTime(2025, 5, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Notes = "Sent proposal",
                             Outcome = "Waiting"
                         },
@@ -125,9 +128,73 @@ namespace MockCRM.Migrations
                             ContactType = "Phone",
                             CreatedByUserId = 2,
                             CustomerID = 5,
-                            Duration = 0,
+                            Duration = 45,
+                            FollowUpDate = new DateTime(2025, 7, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Notes = "Negotiation",
                             Outcome = "Deal closed"
+                        },
+                        new
+                        {
+                            ContactHistoryID = 60,
+                            ContactDate = new DateTime(2024, 7, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            ContactMethod = 1,
+                            ContactType = "Email",
+                            CreatedByUserId = 1,
+                            CustomerID = 1,
+                            Duration = 5,
+                            FollowUpDate = new DateTime(2024, 7, 10, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Notes = "Follow-up overdue",
+                            Outcome = "No response"
+                        },
+                        new
+                        {
+                            ContactHistoryID = 70,
+                            ContactDate = new DateTime(2024, 8, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            ContactMethod = 2,
+                            ContactType = "InPerson",
+                            CreatedByUserId = 4,
+                            CustomerID = 2,
+                            Duration = 90,
+                            Notes = "On-site visit",
+                            Outcome = "Demo scheduled"
+                        },
+                        new
+                        {
+                            ContactHistoryID = 80,
+                            ContactDate = new DateTime(2024, 9, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            ContactMethod = 3,
+                            ContactType = "VideoCall",
+                            CreatedByUserId = 5,
+                            CustomerID = 3,
+                            Duration = 20,
+                            FollowUpDate = new DateTime(2024, 9, 10, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Notes = "Remote support",
+                            Outcome = "Resolved"
+                        },
+                        new
+                        {
+                            ContactHistoryID = 90,
+                            ContactDate = new DateTime(2024, 10, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            ContactMethod = 0,
+                            ContactType = "Phone",
+                            CreatedByUserId = 2,
+                            CustomerID = 4,
+                            Duration = 25,
+                            Notes = "Contract renewal",
+                            Outcome = "Renewed"
+                        },
+                        new
+                        {
+                            ContactHistoryID = 100,
+                            ContactDate = new DateTime(2024, 11, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            ContactMethod = 1,
+                            ContactType = "Email",
+                            CreatedByUserId = 1,
+                            CustomerID = 5,
+                            Duration = 10,
+                            FollowUpDate = new DateTime(2024, 11, 10, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Notes = "Feedback requested",
+                            Outcome = "Positive"
                         });
                 });
 
@@ -143,7 +210,6 @@ namespace MockCRM.Migrations
                         .HasColumnType("int");
 
                     b.Property<string>("Company")
-                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<DateTime>("CreatedDate")
@@ -161,7 +227,6 @@ namespace MockCRM.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Phone")
-                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<int?>("Priority")
@@ -189,8 +254,9 @@ namespace MockCRM.Migrations
                             Email = "contact.acme@gmail.com",
                             LastContactDate = new DateTime(2024, 6, 5, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Name = "Acme Corp",
-                            Phone = "1234567890",
+                            Phone = "+91 9123456789",
                             Priority = 0,
+                            Revenue = 100000,
                             Status = 0
                         },
                         new
@@ -202,8 +268,9 @@ namespace MockCRM.Migrations
                             Email = "info.beta@gmail.com",
                             LastContactDate = new DateTime(2024, 6, 6, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Name = "Beta LLC",
-                            Phone = "2345678901",
+                            Phone = "+91 9234567890",
                             Priority = 1,
+                            Revenue = 50000,
                             Status = 2
                         },
                         new
@@ -215,34 +282,32 @@ namespace MockCRM.Migrations
                             Email = "hello.gamma@gmail.com",
                             LastContactDate = new DateTime(2024, 6, 7, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Name = "Gamma Inc",
-                            Phone = "3456789012",
+                            Phone = "+91 9345678901",
                             Priority = 2,
                             Status = 1
                         },
                         new
                         {
                             ID = 4,
-                            AssignedSalesRepId = 5,
                             Company = "Delta",
                             CreatedDate = new DateTime(2024, 6, 4, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Email = "support.delta@gmail.com",
-                            LastContactDate = new DateTime(2024, 6, 8, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Name = "Delta Ltd",
-                            Phone = "4567890123",
                             Priority = 1,
+                            Revenue = 75000,
                             Status = 0
                         },
                         new
                         {
                             ID = 5,
                             AssignedSalesRepId = 2,
-                            Company = "Epsilon",
                             CreatedDate = new DateTime(2024, 6, 5, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Email = "contact.epsilon@gmail.com",
                             LastContactDate = new DateTime(2024, 6, 9, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Name = "Epsilon GmbH",
-                            Phone = "5678901234",
+                            Phone = "+91 9456789012",
                             Priority = 0,
+                            Revenue = 120000,
                             Status = 2
                         });
                 });

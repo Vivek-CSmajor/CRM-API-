@@ -40,6 +40,9 @@ public class ContactHistoryController : ControllerBase
          return NotFound("customer nhi mila");
      if(string.IsNullOrWhiteSpace(contactData.ContactType) || string.IsNullOrWhiteSpace(contactData.Outcome))
          return BadRequest("CONtact type and/or outcome is null/whitespace");
+     if (contactData.FollowUpDate.HasValue && contactData.FollowUpDate.Value < DateTime.UtcNow)
+         return BadRequest("Followup date cant be in the past");
+     bool isFirstContact = !await _context.ContactHistories.AnyAsync(c => c.CustomerID == customerId);
      var newContact = new ContactHistory()
      {
          CustomerID = customerId,
@@ -53,6 +56,7 @@ public class ContactHistoryController : ControllerBase
 
      var customer = await _context.Customers.FindAsync(customerId);
      customer.LastContactDate = newContact.ContactDate;
+     if (isFirstContact) customer.Status = CustomerStatus.Active;
      await _context.SaveChangesAsync();
 
      return CreatedAtAction(nameof(GetContacts), new { customerId = customerId }, newContact);

@@ -9,6 +9,7 @@ using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using MockCRM.Data;
+using MockCRM.Mapping;
 using MockCRM.Services;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -28,6 +29,8 @@ builder.Services.AddControllers()
             options.JsonSerializerOptions.PropertyNameCaseInsensitive = true;
             options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
         });
+
+builder.Services.AddAutoMapper(typeof(MappingProfile));
 builder.Services.AddScoped<TokenService>(); 
 // Add CORS policy for development
 builder.Services.AddCors(options =>

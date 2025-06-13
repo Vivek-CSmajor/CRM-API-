@@ -1,5 +1,7 @@
 using System.Runtime.InteropServices.JavaScript;
+using AutoMapper;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using MockCRM.Data;
@@ -13,10 +15,30 @@ namespace MockCRM.Controller
     public class CustomersController : ControllerBase
     {
         private readonly CrmDbContext _context;
+        private readonly IMapper _mapper;
 
-        public CustomersController(CrmDbContext context)
+        public CustomersController(CrmDbContext context, IMapper mapper)
         {
             _context = context;
+            _mapper = mapper;
+        }
+        
+        
+        //This is to ensure only assignedSalesRep can modify their customers.
+        private int GetCurrentUserId()
+        {
+            //USING FIRSTFIRST its always referring to the currently logged in user.
+            var userIdClaim = User.FindFirst("UserId")?.Value;
+            if (string.IsNullOrEmpty(userIdClaim))
+                throw new Exception("User ID not in found in token");
+            return int.Parse(userIdClaim);
+        }
+
+        private async Task<bool> IsSalesRepAuthorized(int customerId)
+        {
+            var customer = await _context.Customers.FindAsync(customerId);
+            if (customer == null) return false;
+            return customer.AssignedSalesRepId == GetCurrentUserId();
         }
 
         [HttpPost]
@@ -43,17 +65,11 @@ namespace MockCRM.Controller
         [HttpGet]
         public async Task<IActionResult> GetAllCustomers()
         {
-            try
-            {
                 var customers = await _context.Customers
                     .Include(c => c.ContactHistories)
                     .ToListAsync();
-                return Ok(customers);
-            }
-            catch
-            {
-                return StatusCode(500, "error occured while doing GetAllCustomers ");
-            }
+                var customerDtos = _mapper.Map<List<CustomerDto>>(customers);
+                return Ok(customerDtos);
         }
 
         [HttpGet("{id}")]
@@ -75,7 +91,8 @@ namespace MockCRM.Controller
                 return NotFound();
             if (string.IsNullOrWhiteSpace(updatedCustomer.Name) || string.IsNullOrWhiteSpace(updatedCustomer.Email))
                 return BadRequest("NAME EMAIL ARE REQUIRED.");
-
+            if (!await IsSalesRepAuthorized(id))
+                return Forbid("u are not authorized to update this customer as its now assigned to u");
             customer.Name = updatedCustomer.Name;
             customer.Email = updatedCustomer.Email;
             customer.Phone = updatedCustomer.Phone;
@@ -92,6 +109,7 @@ namespace MockCRM.Controller
             var customer = await _context.Customers.FindAsync(id);
             if (customer == null)
                 return NotFound();
+            if(!await IsSalesRepAuthorized(id)) return Forbid("u are not authorized to delete this customer as its not assigned to u");
             _context.Customers.Remove(customer);
             await _context.SaveChangesAsync();
             return NoContent();
@@ -137,7 +155,7 @@ namespace MockCRM.Controller
         }
 
         [HttpGet("assigned-to/{userId}")]
-        public async Task<IActionResult> GetCUstomersAssignedToUser([FromRoute] int userId)
+        public async Task<IActionResult> GetCustomersAssignedToUser([FromRoute] int userId)
         {
             if (!await _context.Users.AnyAsync(c => c.Id == userId))
                 return BadRequest("User does not exist. Invalid Id given by u");
@@ -151,6 +169,41 @@ namespace MockCRM.Controller
             return Ok(customers);
         }
 
+        [HttpGet("{id}/contacts/summary")]
+        public async Task<IActionResult> GetContactSummary(int id)
+        {
+            var contactHistories = await _context.ContactHistories
+                .Where(ch => ch.CustomerID == id)
+                .ToListAsync();
+            var countByType = contactHistories
+                .GroupBy(c => c.ContactType)
+                .ToDictionary(k => k.Key,  k => k.Count());
+            var mostRecentContact = contactHistories
+                .OrderByDescending(c => c.ContactDate)
+                .FirstOrDefault()?.ContactDate;
+            var totalContacts = contactHistories.Count();
+            return Ok(new
+            {
+                CountByContactType = countByType,
+                MostRecentContact = mostRecentContact,
+                TotalContacts = totalContacts
+            });
+        }
+        
+        //overdue means followUpDate is not null and is before whatever the current time is.
+        [HttpGet("{id}/contacts/overdue")]
+        public async Task<IActionResult> GetContactOverdue(int id)
+        {
+            var contactOverdue = await _context.ContactHistories
+                .Where(c => c.CustomerID == id)
+                .Where(c => c.FollowUpDate != null && c.FollowUpDate < DateTime.UtcNow)
+                .ToListAsync();
+            return Ok(contactOverdue);
+        }
+        
+        
+        //The following methods are for BUlK operations.
+        
         [HttpPost("bulk-import")]
         // This made me realise i need to create a Dto as the request i'll give here may not include all the properties. 
         // Since when importing customers, i may have not done all the things like phone, company etc.
@@ -187,14 +240,14 @@ namespace MockCRM.Controller
                     continue;
                 }
 
-                // Validate Status enum - ensure provided status is valid
+                // Validate Status enum to ensure provided status is valid
                 if (!Enum.TryParse<CustomerStatus>(dto.Status, true, out var status))
                 {
                     results.Add(new { customer = dto, success = false, reason = "Invalid status" });
                     continue;
                 }
 
-                // Validate Priority enum - ensure provided priority is valid
+                // Validate Priority enum to ensure provided priority is valid
                 if (!Enum.TryParse<CustomerPriority>(dto.Priority, true, out var priority))
                 {
                     results.Add(new { customer = dto, success = false, reason = "Invalid priority" });
@@ -214,7 +267,7 @@ namespace MockCRM.Controller
                     }
                 }
                 // ALl validations Done. Now create Customer.
-                // Create new customer entity from validated DTO
+                // Create new customer from  DTO
                 var customer = new Customer
                 {
                     Name = dto.Name,
@@ -223,21 +276,59 @@ namespace MockCRM.Controller
                     Company = dto.Company,
                     Status = status,
                     Priority = priority,
-                    AssignedSalesRepId = dto.AssignedSalesRepId,  // Set directly, allow null
-                    Revenue = dto.Revenue ?? 0,                   // Use dto.Revenue if provided, else 0
+                    AssignedSalesRepId = dto.AssignedSalesRepId,  
+                    Revenue = dto.Revenue ?? 0,                 
                     CreatedDate = DateTime.UtcNow
                 };
 
-                // Add customer to context and mark as successful
+                
                 _context.Customers.Add(customer);
                 results.Add(new { customer = dto, success = true });
             }
-
-            // Save all valid customers to database in a single transaction
             await _context.SaveChangesAsync();
-            
-            // Return results showing success/failure for each customer
             return Ok(results);
         }
+
+        [HttpPut("bulk-assign")]
+        public async Task<IActionResult> BulkAssignCustomers([FromBody] BulkAssignDto assign)
+        {
+            if (assign.CustomerIds == null || !assign.CustomerIds.Any())
+                return BadRequest("Customer Ids not provided");
+            var userExists = await _context.Users.AnyAsync(u => u.Id == assign.AssignedSalesRepId);
+            if (!userExists)
+                return BadRequest("Assigned sales rep does not exist");
+            var customers = await _context.Customers
+                .Where(c => assign.CustomerIds.Contains(c.ID))
+                .ToListAsync();
+            foreach (var customer in customers)
+            {
+                customer.AssignedSalesRepId = assign.AssignedSalesRepId;
+            }
+
+            await _context.SaveChangesAsync();
+            return Ok(new { updated = customers.Count });
+        }
+
+        [HttpDelete("bulk-delete")]
+        public async Task<IActionResult> BulkDeleteCustomers([FromBody] List<int> customerIds)
+        {
+            if (customerIds == null || !customerIds.Any())
+                return BadRequest("no customer ids given");
+            var customers = await _context.Customers
+                .Where(c => customerIds.Contains(c.ID))
+                .ToListAsync();
+            if (!customers.Any())
+                return NotFound("No matching customers found");
+            // now check if currentUser authorized to delete this customer
+            /*int currentUserId = GetCurrentUserId();
+            if (customers.Any(c => c.AssignedSalesRepId == currentUserId))
+                return Forbid("not authorized to delete some of these customers");*/
+            _context.Customers.RemoveRange(customers);
+            await _context.SaveChangesAsync();
+            return Ok(new { deleted = customers.Count });
+        }
+        
+        
+        
     }
 }
