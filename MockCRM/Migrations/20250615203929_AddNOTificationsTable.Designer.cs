@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using MockCRM.Data;
 
@@ -11,9 +12,11 @@ using MockCRM.Data;
 namespace MockCRM.Migrations
 {
     [DbContext(typeof(CrmDbContext))]
-    partial class CrmDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250615203929_AddNOTificationsTable")]
+    partial class AddNOTificationsTable
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -195,19 +198,6 @@ namespace MockCRM.Migrations
                             FollowUpDate = new DateTime(2024, 11, 10, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Notes = "Feedback requested",
                             Outcome = "Positive"
-                        },
-                        new
-                        {
-                            ContactHistoryID = 110,
-                            ContactDate = new DateTime(2025, 6, 15, 20, 0, 0, 0, DateTimeKind.Unspecified),
-                            ContactMethod = 0,
-                            ContactType = "Phone",
-                            CreatedByUserId = 2,
-                            CustomerID = 1,
-                            Duration = 10,
-                            FollowUpDate = new DateTime(2025, 6, 15, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Notes = "Scheduled follow-up for testing",
-                            Outcome = "Pending"
                         });
                 });
 
@@ -337,9 +327,10 @@ namespace MockCRM.Migrations
                         .HasColumnType("datetime2");
 
                     b.Property<string>("Message")
+                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<int?>("UserId")
+                    b.Property<int>("UserId")
                         .HasColumnType("int");
 
                     b.Property<bool>("isRead")

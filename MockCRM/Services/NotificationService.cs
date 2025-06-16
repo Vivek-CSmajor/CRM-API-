@@ -1,0 +1,52 @@
+using MockCRM.Data;
+using MockCRM.Models;
+
+namespace MockCRM.Services;
+
+public interface INotificationService
+{
+    Task DailyFollowUpCallsNotificationAsync(int? userId, string message);
+}
+
+public class NotificationService : INotificationService
+{
+    private readonly CrmDbContext _context;
+
+    public NotificationService(CrmDbContext context)
+    {
+        _context = context;
+    }
+
+    //i didnt write this . i just copied it from the internet. i dont understand why its written like this
+    // i just know what it does and slightly how it does it.
+    public async Task DailyFollowUpCallsNotificationAsync(int? userId, string message)
+    {
+        // If message is null or empty, auto-generate follow-up list
+        if (string.IsNullOrWhiteSpace(message) && userId.HasValue)
+        {
+            var today = DateTime.UtcNow.Date;
+            var dueFollowups = _context.Set<ContactHistory>()
+                .Where(ch => ch.CreatedByUserId == userId && ch.FollowUpDate != null && ch.FollowUpDate.Value.Date == today)
+                .Join(_context.Customers, ch => ch.CustomerID, c => c.ID, (ch, c) => new { ch, c })
+                .ToList();
+            if (dueFollowups.Any())
+            {
+                message = "Calls due for follow-up:\n" + string.Join("\n", dueFollowups.Select(df => $"Customer: {df.c.Name}, FollowUp: {df.ch.FollowUpDate:yyyy-MM-dd}, Notes: {df.ch.Notes}"));
+            }
+            else
+            {
+                message = "No calls due for follow-up.";
+            }
+        }
+        var notification = new Notification
+        {
+            UserId = userId,
+            Message = message,
+            CreatedAt = DateTime.UtcNow,
+            isRead = false
+        };
+        _context.Notifications.Add(notification);
+        await _context.SaveChangesAsync();
+        Console.WriteLine($"[Notification] User {userId} - {message} ");
+    }
+}

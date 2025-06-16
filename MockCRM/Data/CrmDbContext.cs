@@ -58,7 +58,8 @@ public class CrmDbContext : DbContext
             new ContactHistory { ContactHistoryID = 70, CustomerID = 2, ContactType = "InPerson", Notes = "On-site visit", ContactDate = new DateTime(2024, 8, 1), Outcome = "Demo scheduled", CreatedByUserId = 4, FollowUpDate = null, Duration = 90, ContactMethod = ContactMethod.InPerson },
             new ContactHistory { ContactHistoryID = 80, CustomerID = 3, ContactType = "VideoCall", Notes = "Remote support", ContactDate = new DateTime(2024, 9, 1), Outcome = "Resolved", CreatedByUserId = 5, FollowUpDate = new DateTime(2024, 9, 10), Duration = 20, ContactMethod = ContactMethod.VideoCall },
             new ContactHistory { ContactHistoryID = 90, CustomerID = 4, ContactType = "Phone", Notes = "Contract renewal", ContactDate = new DateTime(2024, 10, 1), Outcome = "Renewed", CreatedByUserId = 2, FollowUpDate = null, Duration = 25, ContactMethod = ContactMethod.Phone },
-            new ContactHistory { ContactHistoryID = 100, CustomerID = 5, ContactType = "Email", Notes = "Feedback requested", ContactDate = new DateTime(2024, 11, 1), Outcome = "Positive", CreatedByUserId = 1, FollowUpDate = new DateTime(2024, 11, 10), Duration = 10, ContactMethod = ContactMethod.Email }
+            new ContactHistory { ContactHistoryID = 100, CustomerID = 5, ContactType = "Email", Notes = "Feedback requested", ContactDate = new DateTime(2024, 11, 1), Outcome = "Positive", CreatedByUserId = 1, FollowUpDate = new DateTime(2024, 11, 10), Duration = 10, ContactMethod = ContactMethod.Email },
+            new ContactHistory { ContactHistoryID = 110, CustomerID = 1, ContactType = "Phone", Notes = "Scheduled follow-up for testing", ContactDate = new DateTime(2025, 6, 15, 20, 0, 0), Outcome = "Pending", CreatedByUserId = 2, FollowUpDate = new DateTime(2025, 6, 15, 0, 0, 0), Duration = 10, ContactMethod = ContactMethod.Phone }
         );
     }
     public CrmDbContext(DbContextOptions<CrmDbContext> options) : base(options)
@@ -67,4 +68,5 @@ public class CrmDbContext : DbContext
     public DbSet<Customer> Customers { get; set; }
     public DbSet<ContactHistory> ContactHistories { get; set; }
     public DbSet<User> Users { get; set; }
+    public DbSet<Notification> Notifications { get; set; }
 }
