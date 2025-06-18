@@ -1,6 +1,7 @@
 using System.Reflection;
 using System.Text;
 using System.Text.Json.Serialization;
+using AspNetCoreRateLimit;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.JsonWebTokens;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -113,8 +114,14 @@ builder.Services.AddSwaggerGen(c =>
         });
     }
     );
+builder.Services.Configure<IpRateLimitOptions>(builder.Configuration.GetSection("IpRateLimiting"));
+builder.Services.AddInMemoryRateLimiting();
 
+builder.Services.AddSingleton<IRateLimitConfiguration, RateLimitConfiguration>();
+
+builder.Services.AddMemoryCache();
 var app = builder.Build();
+
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
@@ -123,6 +130,7 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();    
 }
 
+app.UseIpRateLimiting();
 app.UseHttpsRedirection();
 // Use CORS policy
 app.UseCors("AllowAll");

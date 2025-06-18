@@ -86,10 +86,10 @@ namespace MockCRM.Controller
         //         var customerDtos = _mapper.Map<List<CustomerDto>>(customers);
         //         return Ok(customerDtos);
         // }
-        public async Task<IActionResult> GetAllCustomers([FromQuery] int page = 1, [FromQuery] int pageSize = 20,[FromQuery] bool includeContactHistories = false)
+        public async Task<IActionResult> GetAllCustomers([FromQuery] int page = 1, [FromQuery] int pageSize = 3,[FromQuery] bool includeContactHistories = false)
         {
             if (page < 1) page = 1;
-            if(pageSize <1) pageSize = 20;
+            if(pageSize <1) pageSize = 3;
             IQueryable<Customer> query = _context.Customers;
             if (includeContactHistories)
                 query = query.Include(c => c.ContactHistories);
