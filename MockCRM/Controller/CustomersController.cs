@@ -3,7 +3,9 @@ using AutoMapper;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 using MockCRM.Data;
 using MockCRM.Models;
 
@@ -16,11 +18,13 @@ namespace MockCRM.Controller
     {
         private readonly CrmDbContext _context;
         private readonly IMapper _mapper;
+        private readonly IMemoryCache _cache;
 
-        public CustomersController(CrmDbContext context, IMapper mapper)
+        public CustomersController(CrmDbContext context, IMapper mapper, IMemoryCache cache)
         {
             _context = context;
             _mapper = mapper;
+            _cache = cache;
         }
         
         
@@ -34,12 +38,21 @@ namespace MockCRM.Controller
             return int.Parse(userIdClaim);
         }
 
-        private async Task<bool> IsSalesRepAuthorized(int customerId)
+        private string GetCurrentUserRole()
+        {
+            var roleClaim = User.FindFirst("role")?.Value;
+            if (string.IsNullOrEmpty(roleClaim))
+                throw new Exception("USer role not found in token");
+            return roleClaim;
+
+        }
+
+        /*private async Task<bool> IsSalesRepAuthorized(int customerId)
         {
             var customer = await _context.Customers.FindAsync(customerId);
             if (customer == null) return false;
             return customer.AssignedSalesRepId == GetCurrentUserId();
-        }
+        }*/
 
         [HttpPost]
         public async Task<IActionResult> CreateCustomer([FromBody] Customer customer)
@@ -63,13 +76,37 @@ namespace MockCRM.Controller
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetAllCustomers()
+        // this is for simply gettingallcustomers. The other one is with Pagination.
+        // along with custom query to include contact histories or not.
+        // public async Task<IActionResult> GetAllCustomers()
+        // {
+        //         var customers = await _context.Customers
+        //             .Include(c => c.ContactHistories)
+        //             .ToListAsync();
+        //         var customerDtos = _mapper.Map<List<CustomerDto>>(customers);
+        //         return Ok(customerDtos);
+        // }
+        public async Task<IActionResult> GetAllCustomers([FromQuery] int page = 1, [FromQuery] int pageSize = 20,[FromQuery] bool includeContactHistories = false)
         {
-                var customers = await _context.Customers
-                    .Include(c => c.ContactHistories)
-                    .ToListAsync();
-                var customerDtos = _mapper.Map<List<CustomerDto>>(customers);
-                return Ok(customerDtos);
+            if (page < 1) page = 1;
+            if(pageSize <1) pageSize = 20;
+            IQueryable<Customer> query = _context.Customers;
+            if (includeContactHistories)
+                query = query.Include(c => c.ContactHistories);
+            var totalCount = await query.CountAsync();
+            var customers = await query
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+            var customersDtos = _mapper.Map<List<CustomerDto>>(customers);
+            return Ok(new
+            {
+                // this is the response format for pagination. Useful for frontend .
+                Data = customersDtos,
+                TotalCount = totalCount,
+                Page = page,
+                PageSize = pageSize
+            });
         }
 
         [HttpGet("{id}")]
@@ -91,9 +128,13 @@ namespace MockCRM.Controller
                 return NotFound();
             if (string.IsNullOrWhiteSpace(updatedCustomer.Name) || string.IsNullOrWhiteSpace(updatedCustomer.Email))
                 return BadRequest("NAME EMAIL ARE REQUIRED.");
-            if (!await IsSalesRepAuthorized(id))
-                return Forbid("u are not authorized to update this customer as its now assigned to u");
-            customer.Name = updatedCustomer.Name;
+            //if (!await IsSalesRepAuthorized(id))
+              //  return Forbid("you are not authorized to update this customer as its not assigned to u");
+              var role = GetCurrentUserRole();
+              if (role == "Salesman" && customer.AssignedSalesRepId != GetCurrentUserId())
+                  return Forbid(
+                      "U are not authorized to update this customer as u r a salesrep who isnt assigned to this customer");
+              customer.Name = updatedCustomer.Name;
             customer.Email = updatedCustomer.Email;
             customer.Phone = updatedCustomer.Phone;
             customer.Company = updatedCustomer.Company;
@@ -109,8 +150,14 @@ namespace MockCRM.Controller
             var customer = await _context.Customers.FindAsync(id);
             if (customer == null)
                 return NotFound();
-            if(!await IsSalesRepAuthorized(id)) return Forbid("u are not authorized to delete this customer as its not assigned to u");
-            _context.Customers.Remove(customer);
+            // if(!await IsSalesRepAuthorized(id)) return Forbid("u are not authorized to delete this customer as its not assigned to u");
+            // _context.Customers.Remove(customer);
+            var role = GetCurrentUserRole();
+            if (role == "Manager")
+                return Forbid("Managers are not allowed to delete customers");
+            if (role == "Salesman" && customer.AssignedSalesRepId != GetCurrentUserId())
+                return Forbid("SalesReps can only delete their assigned customers");
+
             await _context.SaveChangesAsync();
             return NoContent();
         }
@@ -170,24 +217,32 @@ namespace MockCRM.Controller
         }
 
         [HttpGet("{id}/contacts/summary")]
+        // Injecting ImemoryCache to cache frequently accessed data.
         public async Task<IActionResult> GetContactSummary(int id)
         {
-            var contactHistories = await _context.ContactHistories
-                .Where(ch => ch.CustomerID == id)
-                .ToListAsync();
-            var countByType = contactHistories
-                .GroupBy(c => c.ContactType)
-                .ToDictionary(k => k.Key,  k => k.Count());
-            var mostRecentContact = contactHistories
-                .OrderByDescending(c => c.ContactDate)
-                .FirstOrDefault()?.ContactDate;
-            var totalContacts = contactHistories.Count();
-            return Ok(new
+            string cacheKey = $"ContactSummary_{id}";
+            if (!_cache.TryGetValue(cacheKey, out object summary))
             {
-                CountByContactType = countByType,
-                MostRecentContact = mostRecentContact,
-                TotalContacts = totalContacts
-            });
+                var contactHistories = await _context.ContactHistories
+                    .Where(ch => ch.CustomerID == id)
+                    .ToListAsync();
+                var countByType = contactHistories
+                    .GroupBy(c => c.ContactType)
+                    .ToDictionary(k => k.Key,  k => k.Count());
+                var mostRecentContact = contactHistories
+                    .OrderByDescending(c => c.ContactDate)
+                    .FirstOrDefault()?.ContactDate;
+                var totalContacts = contactHistories.Count();
+
+                summary = new
+                {
+                    CountByContactType = countByType,
+                    MostRecentContact = mostRecentContact,
+                    TotalContacts = totalContacts
+                };
+                _cache.Set(cacheKey, summary, TimeSpan.FromMinutes(5));
+            }
+            return Ok(summary);
         }
         
         //overdue means followUpDate is not null and is before whatever the current time is.
@@ -323,12 +378,19 @@ namespace MockCRM.Controller
             /*int currentUserId = GetCurrentUserId();
             if (customers.Any(c => c.AssignedSalesRepId == currentUserId))
                 return Forbid("not authorized to delete some of these customers");*/
+            var role = GetCurrentUserRole();
+            if (role == "Manager")
+                return Forbid("Managers are not allowed to delete customers in bulk.");
+            if (role == "Salesman")
+            {
+                int currentUserId = GetCurrentUserId();
+                if(customers.Any(c=> c.AssignedSalesRepId != currentUserId))
+                    return Forbid("Salesman can only delete their assigned customers");
+            }
             _context.Customers.RemoveRange(customers);
             await _context.SaveChangesAsync();
             return Ok(new { deleted = customers.Count });
         }
-        
-        
-        
     }
 }
+

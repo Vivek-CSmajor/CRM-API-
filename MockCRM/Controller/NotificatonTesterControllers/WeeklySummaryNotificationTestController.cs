@@ -20,7 +20,7 @@ public class WeeklySummaryNotificationTestController : ControllerBase
     [HttpGet("WeeklySummaryTest")]
     public async Task<IActionResult> WeeklySummaryTest([FromQuery] int userId)
     {
-        var summaryService = new WeeklySummaryService(_context);
+        var summaryService = new NotificationService(_context);
         var summaries = await summaryService.GetWeeklySummaryAsync();
         var userSummary = summaries
             .Where(c => c.CustomerId == userId)

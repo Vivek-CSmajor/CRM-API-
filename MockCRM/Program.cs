@@ -34,7 +34,7 @@ builder.Services.AddAutoMapper(typeof(MappingProfile));
 builder.Services.AddScoped<TokenService>(); 
 // registring notification service just to test it.
 builder.Services.AddScoped<INotificationService, NotificationService>();
-builder.Services.AddScoped<WeeklySummaryService>();
+
 builder.Services.AddHostedService<WeeklySummaryBackgroundService>();
 // Add CORS policy for development
 builder.Services.AddCors(options =>

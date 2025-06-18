@@ -20,7 +20,7 @@ public class WeeklySummaryBackgroundService : BackgroundService
             await Task.Delay(delay, stoppingToken);
             using (var scope = _serviceProvider.CreateScope())
             {
-                var summaryService = scope.ServiceProvider.GetRequiredService<WeeklySummaryService>();
+                var summaryService = scope.ServiceProvider.GetRequiredService<NotificationService>();
                 var summaries = await summaryService.GetWeeklySummaryAsync();
                 foreach (var summary in summaries)
                 {

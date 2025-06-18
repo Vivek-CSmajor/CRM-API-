@@ -1,3 +1,4 @@
+using Microsoft.EntityFrameworkCore;
 using MockCRM.Data;
 using MockCRM.Models;
 
@@ -6,6 +7,7 @@ namespace MockCRM.Services;
 public interface INotificationService
 {
     Task DailyFollowUpCallsNotificationAsync(int? userId, string message);
+    Task<int> TriggerHighPriorityCustomerAlertsAsync();
 }
 
 public class NotificationService : INotificationService
@@ -49,4 +51,51 @@ public class NotificationService : INotificationService
         await _context.SaveChangesAsync();
         Console.WriteLine($"[Notification] User {userId} - {message} ");
     }
+
+    public async Task<int> TriggerHighPriorityCustomerAlertsAsync()
+    {
+        var sevenDaysAgo = DateTime.Now.AddDays(-7);
+        var neglectedCustomers = _context.Customers
+            .Where(c => c.Priority == CustomerPriority.High && c.LastContactDate <= sevenDaysAgo)
+            .ToList();
+        foreach (var neglectedCustomer in neglectedCustomers)
+        {
+            var alert = $"High Priority customer {neglectedCustomer.Name} hasn't been contacted in the last 7 days";
+            _context.Notifications.Add(new Notification
+            {
+                UserId = neglectedCustomer.AssignedSalesRepId,
+                Message = alert,
+                CreatedAt = DateTime.UtcNow,
+                isRead = false
+            });
+        }
+        await _context.SaveChangesAsync();
+        return neglectedCustomers.Count;
+    }
+    
+    public async Task<List<WeeklySummaryDto>> GetWeeklySummaryAsync()
+    {
+        var contactHistories = await _context.ContactHistories
+            .Where(c => c.ContactDate >= DateTime.UtcNow.AddDays(-7))
+            .ToListAsync();
+        var summaries = contactHistories
+            .Where(c=>c.ContactDate >= DateTime.UtcNow.AddDays(-7))
+            .GroupBy(c=> c.CustomerID)
+            .Select(g => new WeeklySummaryDto
+            {
+                CustomerId = g.Key,
+                ActivityCounts = g.GroupBy(c => c.ContactType)
+                    .ToDictionary(c => c.Key, c => c.Count())
+            })
+            .ToList();
+        return summaries;
+    }
+    //instead of making a seperate file for this DTO . just write it here.
+    public class WeeklySummaryDto
+    {
+        public int CustomerId { get; set; }
+        public Dictionary<string,int> ActivityCounts { get; set; }
+    }
 }
+
+
