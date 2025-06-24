@@ -69,4 +69,8 @@ public class CrmDbContext : DbContext
     public DbSet<ContactHistory> ContactHistories { get; set; }
     public DbSet<User> Users { get; set; }
     public DbSet<Notification> Notifications { get; set; }
+    public DbSet<NotificationTemplate> NotificationTemplates { get; set; }
+    public DbSet<NotificationCampaign> NotificationCampaigns { get; set; }
+    public DbSet<NotificationLog> NotificationLogs { get; set; }
+    public DbSet<NotificationQueue> NotificationQueues { get; set; }
 }

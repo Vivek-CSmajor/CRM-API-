@@ -151,7 +151,7 @@ namespace MockCRM.Controller
             if (customer == null)
                 return NotFound();
             // if(!await IsSalesRepAuthorized(id)) return Forbid("u are not authorized to delete this customer as its not assigned to u");
-            // _context.Customers.Remove(customer);
+            _context.Customers.Remove(customer);
             var role = GetCurrentUserRole();
             if (role == "Manager")
                 return Forbid("Managers are not allowed to delete customers");
