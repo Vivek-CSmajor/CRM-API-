@@ -24,7 +24,7 @@ public class NotificationTemplateController : ControllerBase
     {
         var template = await _context.NotificationTemplates
             .ToListAsync();
-        if (template.Count==0) return NotFound("There are no templates to show yuh");
+        if (template.Count == 0) return NotFound("There are no templates to show yuh");
         return Ok(template);
     }
 
@@ -53,13 +53,15 @@ public class NotificationTemplateController : ControllerBase
     [HttpPut("{id}")]
     public async Task<IActionResult> UpdateTemplate(int id, [FromBody] NotificationTemplate updatedTemplate)
     {
-        var template  = await _context.NotificationTemplates.FindAsync(id);
+        var template = await _context.NotificationTemplates.FindAsync(id);
         if (template == null)
             return NotFound("template not found");
-        if(!Enum.IsDefined(typeof(NotificationType), updatedTemplate.Type) || string.IsNullOrWhiteSpace(updatedTemplate.Content))
+        if (!Enum.IsDefined(typeof(NotificationType), updatedTemplate.Type) ||
+            string.IsNullOrWhiteSpace(updatedTemplate.Content))
         {
             return BadRequest("Template type and content are required");
         }
+
         template.isActive = updatedTemplate.isActive;
         template.Type = updatedTemplate.Type;
         template.Content = updatedTemplate.Content;
@@ -67,16 +69,16 @@ public class NotificationTemplateController : ControllerBase
         return Ok(template);
     }
 
-    [HttpDelete("{id")]
+    [HttpDelete("{id}")]
     public async Task<IActionResult> DeleteTemplate(int id)
     {
         var template = await _context.NotificationTemplates.FindAsync(id);
-        if(template == null) return NotFound("template not found");
+        if (template == null) return NotFound("template not found");
         _context.NotificationTemplates.Remove(template);
         await _context.SaveChangesAsync();
         return NoContent();
     }
-    
+
     [HttpGet("by-type/{type}")]
     public async Task<IActionResult> GetTemplatesByType(string type)
     {
@@ -92,19 +94,20 @@ public class NotificationTemplateController : ControllerBase
 
         return Ok(templates);
     }
-    
+
     //the following is for Template Variable system to dynamically personalize msgs
     private static readonly HashSet<string> SupportedVariables = new()
     {
-        "CustomerName", "Company" , "Email", "Phone"
+        "CustomerName", "Company", "Email", "Phone"
     };
 
     private IEnumerable<string> ExtractVariables(string template)
     {
-        var matches = Regex.Matches(template,  @"\{\{(\w+)\}\}");
+        var matches = Regex.Matches(template, @"\{\{(\w+)\}\}");
         foreach (Match match in matches)
             yield return match.Groups[1].Value;
     }
+
     //what does out do here?
     //its an output parameter that allows the function to return more than one values.
     private bool AreVariablesValid(string template, out List<string> invalidVariables)
@@ -113,34 +116,37 @@ public class NotificationTemplateController : ControllerBase
         invalidVariables = variables.Where(v => !SupportedVariables.Contains(v)).ToList();
         return !invalidVariables.Any(); //! because we want to return true if there are no invalid variables
     }
-    
-    
-    
 
+    private string ReplaceVariables(string template, Dictionary<string, string> data)
+    {
+        return Regex.Replace(template, @"\{\{(\w+)\}\}", match =>
+        {
+            //use 1 inside Groups[1] to get just the value inside {{ }}. if used [0] it will give entire match like {{Name}}
+            var key = match.Groups[1].Value;
+            return data.TryGetValue(key, out var value) ? value : match.Value;
+        });
+    }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    //Provide an endpoint where a user can send a template and a customer ID,
+    //and get back the template with variables replaced by that customer's real data.
+    [HttpGet("preview/{customerId}")]
+    public async Task<IActionResult> PreviewTemplateByCustomer(int customerId, [FromQuery] string template)
+    {
+        var customer = await _context.Customers.FindAsync(customerId);
+        if (customer == null) return NotFound("customer not found");
+        var data = new Dictionary<string, string>
+        {
+            ["CustomerName"] = customer.Name,
+            ["Company"] = customer.Company,
+            ["Email"] = customer.Email,
+            ["Phone"] = customer.Phone
+        };
+        var invalidVariables = ExtractVariables(template)
+            .Where(v => !SupportedVariables.Contains(v))
+            .ToList();
+        if (invalidVariables.Any())
+            return BadRequest($"Unsupported Variabels bitches : {string.Join(" ,", invalidVariables)}");
+        var replaced = ReplaceVariables(template, data);
+        return Ok(replaced);
+    }
 }
