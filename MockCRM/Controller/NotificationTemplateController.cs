@@ -65,6 +65,7 @@ public class NotificationTemplateController : ControllerBase
         template.isActive = updatedTemplate.isActive;
         template.Type = updatedTemplate.Type;
         template.Content = updatedTemplate.Content;
+        template.Category = updatedTemplate.Category;
         await _context.SaveChangesAsync();
         return Ok(template);
     }
@@ -148,5 +149,19 @@ public class NotificationTemplateController : ControllerBase
             return BadRequest($"Unsupported Variabels bitches : {string.Join(" ,", invalidVariables)}");
         var replaced = ReplaceVariables(template, data);
         return Ok(replaced);
+    }
+    
+    //to get list of all templates by category
+    [HttpGet("by-category/{category}")]
+    public async Task<IActionResult> GetTemplatesByCategory(string category)
+    {
+        if (!Enum.TryParse<TemplateCategory>(category, true, out var parsedCategory))
+            return BadRequest("Invalid Category");
+        var templates = await _context.NotificationTemplates
+            .Where(c => c.Category == parsedCategory)
+            .ToListAsync();
+        if (templates.Count == 0)
+            return NotFound("No tempalte found for the given category dumbass");
+        return Ok(templates);
     }
 }

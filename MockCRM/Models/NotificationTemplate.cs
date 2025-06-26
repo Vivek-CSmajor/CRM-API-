@@ -9,6 +9,15 @@ public enum NotificationType
     Push,
     InApp
 }
+
+public enum TemplateCategory
+{
+    WelcomeMessages,
+    FollowUpReminders,
+    MarketingCampaigns,
+    PaymentReminders,
+    EventNotifications
+}
 public class NotificationTemplate
 {
     public int Id { get; set; } 
@@ -19,4 +28,5 @@ public class NotificationTemplate
     
     public string Variables { get; set; }
     public bool isActive { get; set; } = true;
+    public TemplateCategory Category { get; set; }
 }
